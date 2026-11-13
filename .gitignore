@@ -1,12 +1,29 @@
-# Hackathon data must never be committed (event-use only)
+# Hackathon data: event use only. Never commit.
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+outputs/*
+!outputs/.gitkeep
+!outputs/figures/
+outputs/figures/*
+!outputs/figures/.gitkeep
+
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.venv/
+venv/
+.env
+.DS_Store
+Thumbs.db
+
+# Model / classification pipeline (src/0*_*.py): local caches and any data-shaped file
 data_local/
 *.zip
 *.csv
 *.parquet
 *.xlsx
 *.npy
-outputs/*.csv
-.venv/
-__pycache__/
-.ipynb_checkpoints/
-.DS_Store
+# Deck charts from the model pipeline are aggregates (no customer IDs) and are committed
+!outputs/figures/0*_*.png

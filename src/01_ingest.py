@@ -47,4 +47,10 @@ if __name__ == "__main__":
             name, n = fu.result(); total += n
             if k % 20 == 0 or k == len(jobs):
                 print(f"{k}/{len(jobs)} parts, {total:,} rows, {time.time()-t0:.0f}s", flush=True)
-    print("done")
+    # De-duplicate: one delivered zip was an exact copy of another, so the same customer-hour can appear twice.
+    import duckdb
+    duckdb.sql(f"""copy (select distinct on (customer, date, he) * from '{OUT}/*.parquet'
+                    order by customer, date, he)
+                   to '{LOCAL / "ami_clean.parquet"}' (format parquet, compression zstd)""")
+    n = duckdb.sql(f"select count(*), count(distinct customer) from '{LOCAL / 'ami_clean.parquet'}'").fetchone()
+    print(f"done: {n[0]:,} unique customer-hours, {n[1]:,} customers -> ami_clean.parquet")
