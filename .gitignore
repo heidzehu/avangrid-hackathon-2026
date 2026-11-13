@@ -1,0 +1,12 @@
+# Hackathon data must never be committed (event-use only)
+data_local/
+*.zip
+*.csv
+*.parquet
+*.xlsx
+*.npy
+outputs/*.csv
+.venv/
+__pycache__/
+.ipynb_checkpoints/
+.DS_Store
