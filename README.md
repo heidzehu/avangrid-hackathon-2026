@@ -187,6 +187,17 @@ Implemented in `src/09_segment.py`. (a first-pass k-means segmentation on the mo
 ### Part 3 – Demand flexibility and BTM battery opportunity
 Implemented with GridFlex battery dispatch, demand response, battery sizing, economic sensitivity and integrated customer recommendations.
 
+### Part 3 – Territory-wide battery & demand-flexibility screening
+`src/14_bess_opportunity.py` simulates a battery (1 or 2 Enphase IQ 10C units) and a smart-thermostat event in **every eligible residential home** on the Part 1/2 customer base (34,238 customers; business-sized, seasonal and short-data meters excluded). It complements the GridFlex optimizer (`src/10–13`), which solves detailed dispatch for a short list.
+- Dispatch: discharge 3–9 pm (biggest hours first, no export, 10% reserve, 89.4% round trip); recharge midnight–7 am.
+- Sizing: 1 unit if the home's 3–9 pm energy on the 19 system-peak days fits in one unit, else 2.
+- Ranking: utility cost per kW of peak relief = (battery cost − PV of the customer's bill savings) ÷ kW cut during the system's top-100 hours; Tier 1 = best 1,000 homes (pilot), Tier 2 = next 2,000, Tier 3 = other persistent-peak homes.
+- Results (illustrative costs: $200/kW-yr capacity value, TOU $0.28/$0.11, $7,500/$14,000 per system): Tiers 1–2 = 6.4 MW of peak relief; median Tier 1 cost ≈ $3,400/kW vs. ≈ $1,800/kW capacity value; thermostat events ≈ 10 MW across ~22,000 AC homes; 12,445 homes could add a Level 2 charger within the 3 kVA guideline with a 2-unit battery.
+- Outputs: `data_local/bess_customers.parquet` (customer-level, git-ignored), `outputs/bess_summary.json` (aggregate, git-ignored).
+
+## Slide deck
+`deck/Final_Submission_DRAFT.pptx` is the submission deck (24 slides). `deck/build_deck.py` (with `deck/build_extra.py`) rebuilds it from the aggregate numbers in `deck/slide_data.json`: `cd deck && python3 build_deck.py` (needs `python-pptx`, `Pillow`, `lxml`).
+
 ## Scaling to millions of customers
 The pipeline is chunked and memory-mapped end to end: each delivery is streamed file by file into a fixed-size matrix, and cleaning and features run over blocks of 2,000 customers. Runtime and memory per customer are constant, so the same code scales linearly. At utility scale the per-customer steps parallelise trivially by customer, e.g. one task per partition in Spark or Dask, matching the `part-*.csv` layout the data already arrives in.
 

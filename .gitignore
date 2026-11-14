@@ -27,3 +27,7 @@ data_local/
 *.npy
 # Deck charts from the model pipeline are aggregates (no customer IDs) and are committed
 !outputs/figures/[0-9][0-9]_*.png
+
+# Office lock files and superseded slide drafts
+~$*
+deck/Part1_Slides_4-10.pptx
