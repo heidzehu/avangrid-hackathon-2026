@@ -179,7 +179,7 @@ for s in 01_ingest 03_matrix 04_features 04b_session_features 06_classify_ml 07_
 ```
 `01_ingest` also de-duplicates customer-hours (`DISTINCT ON (customer, date, he)`), as a safeguard: the original `10001_20000` zip was an exact copy of `1_10000`. `src/config.py` automatically uses a corrected `*_v2.zip` in place of its original.
 
-**Data coverage (original model pipeline):** 34,238 customers. After incorporating the supplemental AMI delivery, the updated pipeline processes 35,236 unique customers. The corrected `10001_20000_v2` delivery still lacks customers 18,152–18,346 and 18,747–19,953 (~1,400 meters, including 12 EV, 10 heat-pump and 35 PV reference customers). All results above are on the customers delivered; labeled counts used are 186 EV, 88 heat pump and 397 PV.
+**Data coverage (original model pipeline):** 34,238 customers. After incorporating the supplemental AMI delivery, the updated pipeline processes 35,236 unique customers. The original model-pipeline delivery had incomplete customer-range coverage. The supplemental AMI delivery was subsequently incorporated, and the updated processed dataset contains 35,236 unique customers (~1,400 meters, including 12 EV, 10 heat-pump and 35 PV reference customers). All results above are on the customers delivered; labeled counts used are 186 EV, 88 heat pump and 397 PV.
 
 ### Part 2 – Segmentation and load insights
 Implemented in `src/09_segment.py`. (a first-pass k-means segmentation on the model pipeline's features is in `src/09_segment.py`, figures `08`–`09`.)
