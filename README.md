@@ -145,6 +145,14 @@ Code: `src/01_ingest.py` … `src/08_classification_charts.py` (run in order; se
 | Heat pump | 58 | 0.75 | 12% (13× random) | ~12% | 232 |
 
 - **Model comparison** (`src/06b_model_comparison.py`): random forest (2 settings) and logistic regression under the identical CV give EV AUC 0.81 and HP AUC 0.71–0.74, all within noise of LightGBM. The signal comes from the engineered features, not the algorithm, so the faster LightGBM model is kept.
+- **Hyperparameter search with nested cross-validation** (`src/06c_hyperparameter_search.py`): random search over 40 LightGBM configurations (8 hyperparameters: trees, leaves, learning rate, min leaf size, row/feature sampling, L1/L2) plus the production configuration. Outer loop 5-fold × 2 repeats; the search runs only on each outer-training set (3-fold inner CV, AUC), and the winner is scored on the untouched outer fold alongside production. Decision rule fixed in advance: adopt only if the paired AUC gain exceeds one standard error and recall@K is not worse.
+
+  | Target | Nested AUC, production | Nested AUC, tuned | Paired gain | Decision |
+  |---|---|---|---|---|
+  | EV | 0.799 | 0.803 | +0.002 ± 0.005 | keep production |
+  | Heat pump | 0.730 | 0.723 | −0.003 ± 0.006 | keep production |
+
+  Configurations ranged from 0.76 to 0.81 AUC (EV) and 0.64 to 0.74 (heat pump). Deeper trees did not generalize better, and on the full data the production configuration ranked first of 41 for heat pumps. The hand-tuned shallow model is therefore near-optimal, and the remaining error comes from the information in hourly data, not the tuning. (Nested AUCs are slightly below the main-model figures because each outer model trains on 80% of the labels.)
 - **Heat-pump limitation:** the labeled heat-pump rate rises ~8× with heating intensity, and among heavy electric heaters labeled heat pumps match other homes on cooling, baseload and winter shape. Hourly AMI cannot reliably separate whole-home heat pumps from resistance heat, so heat pumps are reported as *confirmed* (labeled) plus a ranked *candidate* list (~1 in 8 expected to be a heat pump), never as individually confirmed new finds.
 
 *Other technologies: physics-based rules with 0–1 confidence* (`src/07_classify_rules.py`; logistic "ramps" multiplied for AND conditions, flagged at ≥ 0.5)
