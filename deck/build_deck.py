@@ -15,7 +15,7 @@ from pptx.enum.chart import XL_CHART_TYPE, XL_LEGEND_POSITION, XL_LABEL_POSITION
 from pptx.oxml.ns import qn
 
 SCR = Path(__file__).parent
-OUT = SCR / "Final_Submission_DRAFT.pptx"
+OUT = SCR / "06_DNH Energy_Final Submission.pptx"
 D = json.load(open(SCR / "slide_data.json"))
 
 NAVY, BLUE, LBLUE, CAT, GREY, GOLD = "232A3E", "0A6FAF", "B5DAF3", "D6E9F8", "DCD8D2", "B8862F"

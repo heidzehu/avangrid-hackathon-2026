@@ -38,7 +38,7 @@ def title_slide():
     tb = text(s, 1.0, 4.55, 11.33, 0.4, [{"runs": [("AVANGRID 2026 ENERGY INNOVATION HACKATHON", dict(size=12, color="FFFFFF"))],
                                           "align": PP_ALIGN.CENTER}], "Event name")
     tb.text_frame.paragraphs[0].runs[0].font._element.set("spc", "400")
-    text(s, 1.0, 5.0, 11.33, 0.4, [{"runs": [("Team [##]  ·  [Team name]  ·  November 2026", dict(size=13, color="FFFFFF"))],
+    text(s, 1.0, 5.0, 11.33, 0.4, [{"runs": [("Team 6  ·  DNH Energy  ·  November 2026", dict(size=13, color="FFFFFF"))],
                                     "align": PP_ALIGN.CENTER}], "Team line")
     s.notes_slide.notes_text_frame.text = ("Introduce the team and the one-line pitch: we used a year of hourly meter data to "
         "figure out what's inside each home, group homes by how they use power, and pick where batteries and demand response "

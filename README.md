@@ -196,7 +196,7 @@ Implemented with GridFlex battery dispatch, demand response, battery sizing, eco
 - Outputs: `data_local/bess_customers.parquet` (customer-level, git-ignored), `outputs/bess_summary.json` (aggregate, git-ignored).
 
 ## Slide deck
-`deck/Final_Submission_DRAFT.pptx` is the submission deck (24 slides). `deck/build_deck.py` (with `deck/build_extra.py`) rebuilds it from the aggregate numbers in `deck/slide_data.json`: `cd deck && python3 build_deck.py` (needs `python-pptx`, `Pillow`, `lxml`).
+`deck/06_DNH Energy_Final Submission.pptx` is the submission deck (24 slides, Team 6 · DNH Energy). `deck/build_deck.py` (with `deck/build_extra.py`) rebuilds it from the aggregate numbers in `deck/slide_data.json`: `cd deck && python3 build_deck.py` (needs `python-pptx`, `Pillow`, `lxml`).
 
 ## Scaling to millions of customers
 The pipeline is chunked and memory-mapped end to end: each delivery is streamed file by file into a fixed-size matrix, and cleaning and features run over blocks of 2,000 customers. Runtime and memory per customer are constant, so the same code scales linearly. At utility scale the per-customer steps parallelise trivially by customer, e.g. one task per partition in Spark or Dask, matching the `part-*.csv` layout the data already arrives in.
