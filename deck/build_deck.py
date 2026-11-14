@@ -218,8 +218,8 @@ s = frame("Data & Methodology", "Data Preparation—Turning 298 Million Readings
           "Before modeling anything, we cleaned the meter and weather data, lined everything up hour by hour, and flagged "
           "problem meters instead of throwing them out",
           [("Source:", "Avangrid 2026 Hackathon AMI (9/1/2025–8/31/2026) and hourly weather data; team analysis."),
-           ("Note:", "The corrected 10001–20000 (v2) delivery still lacks customers 18,152–18,346 and 18,747–19,953 "
-                     "(~1,400 meters); results cover the 34,238 customers delivered.")],
+           ("Note:", "Reported findings use the original 34,238-customer snapshot (v2 delivery lacked customers 18,152–18,346 and "
+                     "18,747–19,953). The later expanded dataset (35,236 customers) has not been fully recalculated.")],
           "Go through the four steps from top to bottom. Three things are worth saying out loud. The meters only record "
           "power coming in from the grid, so solar homes show up as zeros, not negative numbers. Every reading is a full hour. "
           "And one of the files we were sent was an exact copy of another one; we caught it, removed the duplicates and "
@@ -466,12 +466,12 @@ style_run(r, 12, color=NAVY, italic=True); tf.paragraphs[0].alignment = PP_ALIGN
 # =====================================================================================
 # Slide 9 — Inventory
 # =====================================================================================
-s = frame("Part 1 · Customer Classification", "Appliance Inventory—Two-Thirds of Homes Run AC; 1 in 40 Has an EV",
+s = frame("Part 1 · Customer Classification", "Appliance Inventory—Two-Thirds Run AC; About 2–2.5% Charge an EV",
           "Adding up the flags gives an inventory for the whole territory. EV and pool homes draw the most at the summer peak, "
           "while vacation homes barely register",
           [("Source:", "Team analysis of 34,238 customers; customer-level flags and probabilities in outputs/customer_classification.csv."),
-           ("Note:", "¹ EV and heat pump populations = labeled ÷ 0.25; flagged EV list ≈36% precise, heat-pump candidate list ≈9% "
-                     "precise. Peak kW = mean demand during the system's top-100 hours.")],
+           ("Note:", "¹ Two different estimates: 844 homes flagged by the classifier (2.5%) vs. ≈724 estimated owners from labeled ÷ 0.25 "
+                     "(2.1%); flagged EV list ≈36% precise, heat-pump candidates ≈9%. Peak kW = mean demand in the system's top-100 hours.")],
           "This is the inventory the challenge asked for: how many homes have each appliance and what their usage looks "
           "like. The column to point at is kW at system peak, meaning how much a home draws during the 100 busiest hours of "
           "the year. EV and pool homes draw about 3 to 3.5 kW then, compared with 1.9 kW for a typical home, so they're the "

@@ -1,3 +1,4 @@
+SNAP = ('Reported findings use the original 34,238-customer analytical snapshot. The later expanded dataset (35,236 customers, after a supplemental delivery) has not been fully recalculated.')
 # Executed inside build_deck.py (shares its namespace): title, executive summary, approach, section dividers,
 # Part 2 segmentation, Part 3 battery & flexibility, recommendations, limitations, appendix.
 import numpy as np
@@ -88,19 +89,23 @@ s = frame("Overview", "Executive Summary—What We Found and What Avangrid Shoul
           "peak, what batteries can and can't do, why demand response comes first, and how batteries help electrification. "
           "The honest headline on batteries is that they work physically but need an incentive or extra value to pay off.")
 rows = [["Topic", "What we found"],
-        ["Who has what", "About 724 homes charge an EV (2.5%), two-thirds run AC and 18% heat with electricity. Our EV model "
-                         "finds owners 17× better than random; heat pumps look like baseboard heat, so we give a ranked list"],
+        ["Who has what", "844 homes flagged as EV chargers (2.5%), about 724 estimated EV owners (2.1%); two-thirds run AC, "
+                         "18% use electric heat. The EV model finds owners 17× better than random; heat pumps come as a ranked list"],
         ["Who drives the peak", f"The system peaks on summer evenings ({B3['system_peak_mw']:.0f} MW). Three segments, 48% of "
                                 "homes, cause 66% of it: high-use year-round homes, heavy-AC homes and steady moderate users"],
         ["Batteries", f"A home battery can only cut what that home uses, about 2 kW at peak. Our top 3,000 homes give "
-                      f"{t12_mw:.1f} MW of relief, but at about $3,400+ per kW they need an incentive or added value to pay off"],
-        ["Demand response", f"Smart-thermostat events in {B3['dr_homes']:,} AC homes could shave about {B3['dr_total_mw']:.0f} MW "
-                            "for far less money, so demand response should come first"],
-        ["Electrification", f"{EL['l2_ready']:,} homes could add a Level 2 charger and stay within the 3 kVA guideline if "
-                            "paired with a 2-unit battery"]]
+                      f"{t12_mw:.1f} MW of modeled potential, but at about $3,400+ per kW they need an incentive or added value to pay off"],
+        ["Demand response", f"Thermostat events in {B3['dr_homes']:,} AC homes show about {B3['dr_total_mw']:.0f} MW of modeled "
+                            "potential before enrollment, at far lower cost, so demand response should come first"],
+        ["Electrification", f"{EL['l2_ready']:,} preliminary Level 2 candidates pass an energy-headroom screen with a 2-unit "
+                            "battery, pending power, service-capacity and feeder checks"]]
 table(s, 0.5, 2.42, 12.33, [2.3, 10.03], rows, "Executive summary table",
-      "Table: executive summary. " + " ".join(f"{r[0]}: {r[1]}." for r in rows[1:]), size=12, row_h=0.72,
+      "Table: executive summary. " + " ".join(f"{r[0]}: {r[1]}." for r in rows[1:]), size=12, row_h=0.62,
       fills={(i, 0): CAT for i in range(1, len(rows))}, bold_rows=())
+b = box(s, 0.5, 6.25, 12.33, 0.45, PALE, "Data snapshot note")
+tf = b.text_frame; tf.word_wrap = True; tf.vertical_anchor = MSO_ANCHOR.MIDDLE; tf.margin_left = Inches(0.12); tf.text = ""
+r = tf.paragraphs[0].add_run(); r.text = "Data snapshot: "; style_run(r, 11, bold=True, color=NAVY)
+r = tf.paragraphs[0].add_run(); r.text = SNAP; style_run(r, 11, color=NAVY); alt(b, "Data snapshot: " + SNAP)
 new.append(s)
 
 # ===================================================================== 3. Approach
@@ -269,7 +274,7 @@ funnel = [(f"{34238:,} meters", "all customers in the data", 6.6), (f"{EL['homes
           (f"{T['Tier 1']['homes'] + T['Tier 2']['homes'] + T['Tier 3']['homes']:,} persistent-peak homes",
            "busy at the system peak, not just once in a while", 5.2),
           (f"{T['Tier 1']['homes'] + T['Tier 2']['homes']:,} Tiers 1–2", "lowest cost per kW of relief", 4.5),
-          (f"{T['Tier 1']['homes']:,} Tier 1 pilot", "start here", 3.8)]
+          (f"{T['Tier 1']['homes']:,} Tier 1", "staged pilot: start with ~100 monitored homes", 3.8)]
 for i, (a, b2, w) in enumerate(funnel):
     x = 0.5 + (6.6 - w) / 2; y = 2.45 + i * 0.84
     c = box(s, x, y, w, 0.74, NAVY if i % 2 == 0 else BLUE, f"Funnel step {i+1}")
@@ -354,18 +359,19 @@ new.append(s)
 t1, t2, t3 = T["Tier 1"], T["Tier 2"], T["Tier 3"]
 mwh12 = t1["mwh_shifted"] + t2["mwh_shifted"]
 bill12 = (t1["bill_avg"] * t1["homes"] + t2["bill_avg"] * t2["homes"]) / (t1["homes"] + t2["homes"])
-s = frame("Part 3 · Battery & Flexibility", f"Program Impact—The Top 3,000 Homes Deliver {t12_mw:.1f} MW of Peak Relief",
-          "Batteries reliably cut about 2 kW per home at peak and save customers $670–840 a year, but each kW still costs more "
-          "than today's capacity value, so the program needs an incentive or extra value streams",
+s = frame("Part 3 · Battery & Flexibility", f"Program Impact—Top 3,000 Homes Show {t12_mw:.1f} MW of Modeled Peak Relief",
+          "Modeled technical potential, before enrollment, participation and feeder checks: about 2 kW per home at peak and "
+          "$670–840 a year in bill savings, but each kW costs more than today's capacity value",
           [("Source:", "Team simulation on 34,238 customers (src/14_bess_opportunity.py)."),
            ("Note:", "Illustrative: capacity value $200/kW-yr; TOU $0.28 on-peak (3–9 pm) / $0.11 off-peak per kWh; battery "
-                     "$7,500 / $14,000; O&M $100/yr; 15 years at 7%. Incentive = battery cost − PV of the customer's net bill savings.")],
-          f"Start with the four big numbers. The top 3,000 homes cut {t12_mw:.1f} megawatts at peak and move about "
+                     "$7,500 / $14,000; O&M $100/yr; 15 years at 7%. Incentive = battery cost − PV of net bill savings. MW are modeled "
+                     "technical potential, not firm capacity.")],
+          f"Start with the four big numbers, and be clear they're modeled potential, before we know who would enroll. The top 3,000 homes could cut {t12_mw:.1f} megawatts at peak and move about "
           f"{mwh12/1000:.0f} gigawatt-hours a year out of the evening. Customers save around $700 a year on a time-of-use "
           "rate. Now the honest part: even the best homes cost about $3,400 per kW, while the capacity is worth about $1,800 "
           "per kW over 15 years at our assumed value. Break-even battery cost for Tier 1 is about $10,600, so either costs "
           "come down, Avangrid pays an incentive, or we count extra value like backup power or a deferred upgrade.")
-kpis = [(f"{t12_mw:.1f} MW", "peak relief, Tiers 1–2"), (f"{mwh12/1000:.1f} GWh", "shifted out of 3–9 pm each year"),
+kpis = [(f"{t12_mw:.1f} MW", "modeled peak relief, Tiers 1–2"), (f"{mwh12/1000:.1f} GWh", "shifted out of 3–9 pm each year"),
         (f"${bill12:,.0f}", "average yearly bill savings"), (f"${t1['cost_per_kw_med']:,.0f}", "per kW for Tier 1 (median)")]
 for i, (big, lab) in enumerate(kpis):
     kpi(s, 0.5 + i * 3.1, 2.42, 2.93, big, lab, f"KPI {i+1}")
@@ -396,15 +402,16 @@ s = frame("Part 3 · Battery & Flexibility", "Beyond Batteries—Thermostats, El
                      "7.2 kW charger exceeds the 3 kVA guideline by 4.2 kW; the battery must cover that for 2 hours (8.4 kWh) "
                      "after its own peak duty. Solar day = 3+ midday hours with zero grid imports.")],
           "Three opportunities beyond the battery program. First, smart-thermostat events: tiny per home, but there are 22,000 "
-          "AC homes, so it adds up to about 10 megawatts with no new hardware. Second, electrification: the 3 kVA rule limits "
-          "what a home can add, but a battery can carry the extra so a home can add a Level 2 charger. Third, solar homes "
+          "AC homes, so it adds up to about 10 megawatts of modeled potential with no new hardware, before we know who enrolls. "
+          "Second, electrification: the 3 kVA rule limits what a home can add. These 12,445 homes pass a first energy screen, "
+          "but each would still need a check of battery power, service capacity and the feeder. Third, solar homes "
           "could charge their battery from their own panels on about half of days.")
-cards = [(f"{B3['dr_total_mw']:.1f} MW", "Smart-thermostat events",
-          [f"{B3['dr_homes']:,} AC homes × about {B3['dr_avg_kw']:.2f} kW each", "No new hardware; call on the ~19 hottest days",
-           "Best fit: heavy-AC and evening-peaky segments"]),
-         (f"{EL['l2_ready']:,}", "homes ready to add a Level 2 charger",
-          ["With a 2-unit battery, they stay within the 3 kVA guideline", "Battery carries the 4.2 kW over the limit for 2 hours",
-           "Pair EV rebates with battery or managed charging"]),
+cards = [(f"{B3['dr_total_mw']:.1f} MW", "modeled thermostat potential",
+          [f"{B3['dr_homes']:,} AC homes × about {B3['dr_avg_kw']:.2f} kW each", "Before enrollment and participation rates",
+           "No new hardware; best fit: heavy-AC and evening-peaky homes"]),
+         (f"{EL['l2_ready']:,}", "preliminary Level 2 candidates",
+          ["Pass an energy-headroom screen with a 2-unit battery", "Still need checks on battery power, service capacity, "
+           "charging schedule and feeder", "Pair EV rebates with battery or managed charging"]),
          (f"{B3['solar_days_avg']*100:.0f}%", "of days solar homes could self-charge",
           [f"{B3['solar_pv_homes']:,} eligible solar homes; 4 already have batteries", "Zero midday imports signal spare solar",
            "Solar + battery cuts evening peak without grid charging"])]
@@ -421,17 +428,18 @@ new.append(divider("IV", "Recommendations & Next Steps",
 s = frame("Recommendations", "Recommendations—Start with Thermostats, Then Pilot Batteries",
           "A phased plan that captures the cheap megawatts first, proves battery value in a targeted pilot, and uses the "
           "inventory to plan for electrification",
-          [("Source:", "Team analysis."), ("Note:", "MW figures are simulated reductions during the system's top-100 hours; "
-                                                    "enrollment rates and costs would be confirmed in the pilot.")],
-          "Four recommendations, in order. One, launch thermostat events, because it's the cheapest 10 megawatts. Two, run a "
-          "1,000-home battery pilot in Tier 1, mostly high-use homes, and test how big an incentive it takes. Three, use the "
+          [("Source:", "Team analysis."), ("Note:", "MW figures are modeled technical potential during the system's top-100 hours, "
+                                                    "before enrollment, participation and feeder adjustments.")],
+          "Four recommendations, in order. One, launch thermostat events, the cheapest source of flexibility. Two, stage a battery "
+          "pilot: start with about 100 monitored Tier 1 homes, check the real kW against our simulation, then scale toward "
+          "1,000 and test how big an incentive it takes. Three, use the "
           "EV and heat-pump lists to pair electrification with batteries or managed charging. Four, feed the segments into "
           "load forecasting, especially the growing winter peak from electric heat.")
-recs = [("Launch smart-thermostat events", f"Target heavy-AC and evening-peaky homes for about {B3['dr_total_mw']:.0f} MW at low cost"),
-        ("Pilot 1,000 Tier 1 batteries", f"{t1['cp_red_mw']:.1f} MW, mostly high-use homes; test incentives near "
-                                        f"${t1['incentive_avg']:,.0f} per home"),
-        ("Pair electrification with flexibility", f"Use EV and heat-pump candidate lists; offer batteries or managed "
-                                                  f"charging to the {EL['l2_ready']:,} headroom homes"),
+recs = [("Launch smart-thermostat events", f"Heavy-AC and evening-peaky homes; about {B3['dr_total_mw']:.0f} MW of modeled potential"),
+        ("Stage a battery pilot", f"Start with ~100 monitored Tier 1 homes, then scale toward 1,000 ({t1['cp_red_mw']:.1f} MW "
+                                  f"modeled) if measured kW match"),
+        ("Pair electrification with flexibility", f"Offer batteries or managed charging to the {EL['l2_ready']:,} preliminary "
+                                                  f"Level 2 candidates after site checks"),
         ("Feed segments into forecasting", "Track EV growth and the future winter peak from electric heat by segment")]
 panel_header(s, 0.5, 2.4, 6.6, "What we recommend")
 for i, (h, d_) in enumerate(recs):
@@ -442,9 +450,9 @@ for i, (h, d_) in enumerate(recs):
     text(s, 1.2, yy, 5.9, 0.82, [{"runs": [(h, dict(size=14, bold=True, color=NAVY))], "space_after": 1},
                                  {"runs": [(d_, dict(size=12))]}], f"Recommendation {i+1}: {h}")
 panel_header(s, 7.5, 2.4, 5.33, "Roadmap")
-phases = [("Next 6 months", ["Enroll thermostat customers in heavy-AC segments", "Recruit Tier 1 battery pilot homes",
+phases = [("Next 6 months", ["Enroll thermostat customers in heavy-AC segments", "Install ~100 monitored Tier 1 batteries",
                              "Confirm heat pumps with rebate records"]),
-          ("Year 1", ["Install and run 1,000 pilot batteries", "Measure real kW at peak vs. simulation",
+          ("Year 1", ["Compare measured kW at peak with the simulation", "Scale toward 1,000 batteries if it matches",
                       "Test incentive levels and backup-power offers"]),
           ("Year 2+", ["Scale to Tier 2 if the pilot hits its cost target", "Add feeder data to target constrained areas",
                        "Rerun the pipeline each year as homes electrify"])]
@@ -470,7 +478,8 @@ lims = ["Hourly data blurs short cycles, so heat pumps look like baseboard heat"
         "One weather station for the whole territory",
         "Meters show grid imports only, so solar output is inferred from zeros",
         "Battery costs and capacity value are illustrative, not tariffs",
-        "About 1,400 meters were missing from the delivered data"]
+        "Results use the 34,238-customer snapshot; the expanded 35,236 set isn't fully rerun",
+        "MW results are modeled potential, not enrolled or firm capacity"]
 text(s, 0.5, 2.9, 6.0, 3.6, [{"runs": [(l, dict(size=13))], "bullet": True, "space_after": 6} for l in lims], "Limitations list")
 panel_header(s, 6.83, 2.4, 6.0, "What would improve it")
 fixes = ["15-minute or faster data to separate appliance cycles",
