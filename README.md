@@ -179,13 +179,13 @@ for s in 01_ingest 03_matrix 04_features 04b_session_features 06_classify_ml 07_
 ```
 `01_ingest` also de-duplicates customer-hours (`DISTINCT ON (customer, date, he)`), as a safeguard: the original `10001_20000` zip was an exact copy of `1_10000`. `src/config.py` automatically uses a corrected `*_v2.zip` in place of its original.
 
-**Data coverage (model pipeline):** 34,238 customers. The corrected `10001_20000_v2` delivery still lacks customers 18,152–18,346 and 18,747–19,953 (~1,400 meters, including 12 EV, 10 heat-pump and 35 PV reference customers). All results above are on the customers delivered; labeled counts used are 186 EV, 88 heat pump and 397 PV.
+**Data coverage (original model pipeline):** 34,238 customers. After incorporating the supplemental AMI delivery, the updated pipeline processes 35,236 unique customers. The corrected `10001_20000_v2` delivery still lacks customers 18,152–18,346 and 18,747–19,953 (~1,400 meters, including 12 EV, 10 heat-pump and 35 PV reference customers). All results above are on the customers delivered; labeled counts used are 186 EV, 88 heat pump and 397 PV.
 
 ### Part 2 – Segmentation and load insights
-*TODO* (a first-pass k-means segmentation on the model pipeline's features is in `src/09_segment.py`, figures `08`–`09`.)
+Implemented in `src/09_segment.py`. (a first-pass k-means segmentation on the model pipeline's features is in `src/09_segment.py`, figures `08`–`09`.)
 
 ### Part 3 – Demand flexibility and BTM battery opportunity
-*TODO*
+Implemented with GridFlex battery dispatch, demand response, battery sizing, economic sensitivity and integrated customer recommendations.
 
 ## Scaling to millions of customers
 The pipeline is chunked and memory-mapped end to end: each delivery is streamed file by file into a fixed-size matrix, and cleaning and features run over blocks of 2,000 customers. Runtime and memory per customer are constant, so the same code scales linearly. At utility scale the per-customer steps parallelise trivially by customer, e.g. one task per partition in Spark or Dask, matching the `part-*.csv` layout the data already arrives in.
@@ -199,3 +199,34 @@ The pipeline is chunked and memory-mapped end to end: each delivery is streamed 
 
 ## Data handling
 The hackathon data is for use during the event only. `data/` and `outputs/` are git-ignored; keep the repository private to the team and the judges.
+
+
+## Final integrated GridFlex workflow
+
+The expanded AMI processing run contains 35,236 unique customers.
+
+### Part 1 — Classification
+Estimates customer technology indicators using machine-learning scores and rule-based evidence.
+
+### Part 2 — Segmentation
+Groups customers by electricity consumption patterns and seasonal demand behavior.
+
+### Part 3 — GridFlex optimization
+Screens customers for critical-hour load reduction and evaluates baseline, demand response, battery and combined scenarios.
+
+### Integrated decision support
+`src/13_integrate_workflows.py` joins the technology classifications, segment labels and optimized recommendations using customer IDs.
+
+The current analysis optimizes 30 screened customers, not the entire 35,236-customer population.
+
+Classification and segmentation provide post-optimization explanations; they do not directly control battery dispatch.
+
+### Validation
+- 27 automated GridFlex and integration tests passed in the development environment.
+- The actual-data integration matched all 30 optimized customers.
+- Full customer-snapshot consistency must be verified separately.
+
+### Limitations
+Economic values, customer flexibility and battery costs are illustrative assumptions. System critical hours are not feeder-specific constraints. AMI predictions do not establish actual appliance ownership or demand response enrollment. The AMI merge audit's newly-filled counter includes original deliveries, not just the supplemental ZIP.
+
+See `INTEGRATION_GUIDE.md` for integration instructions.
