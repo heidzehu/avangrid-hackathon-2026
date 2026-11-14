@@ -56,7 +56,7 @@ R["eheat_conf"] = ramp(F.heat_share, 0.12, 0.03) * ramp(-F.winter_temp_corr, 0.2
 # Hourly AMI cannot reliably separate a whole-home heat pump from resistance heat, so the model's top-K list is
 # only ~12% precise.  We therefore do NOT claim new heat pumps individually:
 #   heat_pump       = labeled (confirmed) owners
-#   hp_candidate    = unlabeled customers in the model's top-K (outreach list, ~1 in 8 expected to be a heat pump)
+#   hp_candidate    = unlabeled customers in the model's top-K (outreach list, ~1 in 10 expected to be a heat pump)
 #   population size = labeled / 0.25 (organizer sampling rate)
 R["hp"] = R.is_hp == 1
 R["hp_candidate"] = R.hp_flag & (R.is_hp == 0)

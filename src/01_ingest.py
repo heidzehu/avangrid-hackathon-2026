@@ -15,7 +15,7 @@ from config import AMI_ZIPS, LOCAL
 OUT = LOCAL / "ami"
 
 def convert(zip_path: str, member: str, idx: int) -> tuple[str, int]:
-    out = OUT / f"part_{idx:04d}.parquet"
+    out = OUT / f"{Path(zip_path).stem.split('Data_')[-1]}__{idx:04d}.parquet"   # cache keyed by delivery
     if out.exists():
         return out.name, pq.read_metadata(out).num_rows
     with zipfile.ZipFile(zip_path) as z, z.open(member) as f:
@@ -52,5 +52,5 @@ if __name__ == "__main__":
     duckdb.sql(f"""copy (select distinct on (customer, date, he) * from '{OUT}/*.parquet'
                     order by customer, date, he)
                    to '{LOCAL / "ami_clean.parquet"}' (format parquet, compression zstd)""")
-    n = duckdb.sql(f"select count(*), count(distinct customer) from '{LOCAL / 'ami_clean.parquet'}'").fetchone()
+    n = duckdb.sql(f"select count(*), count(distinct customer) from '{LOCAL / 'ami_clean.parquet'}'").fetchall()[0]
     print(f"done: {n[0]:,} unique customer-hours, {n[1]:,} customers -> ami_clean.parquet")

@@ -39,16 +39,21 @@ FEATS = [c for c in F.columns if c not in ("customer", "is_ev", "is_hp", "is_pv"
 # LightGBM (deeper trees memorized the ~140 / ~60 positives and generalized worse).
 PARAMS = dict(objective="binary", learning_rate=0.03, n_estimators=150, num_leaves=4, min_child_samples=60,
               subsample=0.8, subsample_freq=1, colsample_bytree=0.6, reg_lambda=5.0, verbose=-1)
+# Heat pump: settings from the nested-CV random search (src/06c_hyperparameter_search.py, full-data search winner).
+# Nested CV: tuned beat the settings above in 7 of 10 outer folds, mean AUC gain +0.013 +/- 0.008 (SE), and found
+# more held-out owners in the top-K, so it met the pre-set adoption rule.  EV: no gain, keeps PARAMS.
+HP_PARAMS = dict(objective="binary", learning_rate=0.035, n_estimators=217, num_leaves=8, min_child_samples=146,
+                 subsample=0.69, subsample_freq=1, colsample_bytree=0.36, reg_lambda=9.4, reg_alpha=0.52, verbose=-1)
 SAMPLING_RATE = 0.25
 
-def pu_model(label, name, seeds=(0, 1, 2, 3, 4)):
+def pu_model(label, name, seeds=(0, 1, 2, 3, 4), params=PARAMS):
     d = F[train_ok].reset_index(drop=True)
     y = d[label].to_numpy(); X = d[FEATS]
     oof = np.zeros(len(d)); imp = np.zeros(len(FEATS))
     for seed in seeds:                                              # repeated CV to stabilise
         skf = StratifiedKFold(5, shuffle=True, random_state=seed)
         for tr, te in skf.split(X, y):
-            m = lgb.LGBMClassifier(**PARAMS, random_state=seed)
+            m = lgb.LGBMClassifier(**params, random_state=seed)
             m.fit(X.iloc[tr], y[tr])
             oof[te] += m.predict_proba(X.iloc[te])[:, 1] / len(seeds)
             imp += m.booster_.feature_importance("gain")
@@ -75,7 +80,7 @@ def pu_model(label, name, seeds=(0, 1, 2, 3, 4)):
                      lift_at_k=lift, precision_at_k=precision_k, sum_prob=prob.sum()), imp, cum
 
 ev, m_ev, imp_ev, cum_ev = pu_model("is_ev", "ev")
-hp, m_hp, imp_hp, cum_hp = pu_model("is_hp", "hp")
+hp, m_hp, imp_hp, cum_hp = pu_model("is_hp", "hp", params=HP_PARAMS)
 S = F[["customer", "is_ev", "is_hp", "is_pv", "dq_low_coverage", "dq_inactive", "large_nonres_like"]] \
     .merge(ev, on="customer", how="left").merge(hp, on="customer", how="left")
 S.to_parquet(LOCAL / "ml_scores.parquet", index=False)

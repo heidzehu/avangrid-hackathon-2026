@@ -134,26 +134,26 @@ Code: `src/01_ingest.py` … `src/08_classification_charts.py` (run in order; se
 **Approach: machine learning where labels exist, physics-based rules where they don't.**
 
 *EV and heat pump: positive-unlabeled (PU) learning* (`src/06_classify_ml.py`)
-- Only ~25% of true owners are labeled, so "unlabeled" mixes non-owners with hidden owners. Following Elkan & Noto (2008), a classifier learns P(labeled | features) and the owner probability is `P(owner) = P(labeled) / 0.25` (clipped to 1). Probabilities sum to ≈ the expected owner count (EV 520 vs 544; HP 215 vs 232), so they are calibrated.
-- Model: shallow, heavily regularized LightGBM (150 trees, 4 leaves). All scores are out-of-fold (5-fold CV × 5 seeds), so no customer is scored by a model that saw it.
+- Only ~25% of true owners are labeled, so "unlabeled" mixes non-owners with hidden owners. Following Elkan & Noto (2008), a classifier learns P(labeled | features) and the owner probability is `P(owner) = P(labeled) / 0.25` (clipped to 1). Probabilities sum to ≈ the expected owner count (EV 703 vs 724; HP 303 vs 340), so they are calibrated.
+- Model: regularized LightGBM: EV 150 trees × 4 leaves (hand-tuned); heat pump 217 trees × 8 leaves (from the nested-CV search below). All scores are out-of-fold (5-fold CV × 5 seeds), so no customer is scored by a model that saw it.
 - Key engineered features (`src/04_features.py`, `src/04b_session_features.py`): EV charging sessions detected as flat, rectangular 1–10 h elevations above the daily baseline (Level 2: ≥ 3 kW; Level 1: 0.9–3 kW, overnight 4–14 h); change-point heating/cooling slopes; overnight cold-weather response; coincidence with the top-100 system hours.
 - Data-quality exclusions from training: coverage < 80%, < 500 kWh/yr, or non-residential-like (p99 > 15 kW or > 50,000 kWh/yr).
 
 | Model | Labeled | AUC | Recall in top-K | Est. precision of top-K | K (= labeled / 0.25) |
 |---|---|---|---|---|---|
-| EV | 136 | 0.80 | 37% (17× random) | ~37% | 544 |
-| Heat pump | 58 | 0.75 | 12% (13× random) | ~12% | 232 |
+| EV | 181 | 0.80 | 37% (17× random) | ~36% | 724 |
+| Heat pump | 85 | 0.77 | 9% (9× random) | ~9% | 340 |
 
-- **Model comparison** (`src/06b_model_comparison.py`): random forest (2 settings) and logistic regression under the identical CV give EV AUC 0.81 and HP AUC 0.71–0.74, all within noise of LightGBM. The signal comes from the engineered features, not the algorithm, so the faster LightGBM model is kept.
+- **Model comparison** (`src/06b_model_comparison.py`): random forest (2 settings) and logistic regression under the identical CV give EV AUC 0.79–0.80 and HP AUC 0.75–0.77, all within noise of the original LightGBM (0.80 / 0.76). The signal comes from the engineered features, not the algorithm, so the faster LightGBM model is kept.
 - **Hyperparameter search with nested cross-validation** (`src/06c_hyperparameter_search.py`): random search over 40 LightGBM configurations (8 hyperparameters: trees, leaves, learning rate, min leaf size, row/feature sampling, L1/L2) plus the production configuration. Outer loop 5-fold × 2 repeats; the search runs only on each outer-training set (3-fold inner CV, AUC), and the winner is scored on the untouched outer fold alongside production. Decision rule fixed in advance: adopt only if the paired AUC gain exceeds one standard error and recall@K is not worse.
 
-  | Target | Nested AUC, production | Nested AUC, tuned | Paired gain | Decision |
-  |---|---|---|---|---|
-  | EV | 0.799 | 0.803 | +0.002 ± 0.005 | keep production |
-  | Heat pump | 0.730 | 0.723 | −0.003 ± 0.006 | keep production |
+  | Target | Mean outer-fold AUC gain (tuned − production) | Folds tuned wins | Decision |
+  |---|---|---|---|
+  | EV | +0.001 ± 0.006 | – | keep hand-tuned |
+  | Heat pump | +0.013 ± 0.008 | 7 of 10 | adopt tuned (217 trees, 8 leaves, stronger feature subsampling and L1/L2) |
 
-  Configurations ranged from 0.76 to 0.81 AUC (EV) and 0.64 to 0.74 (heat pump). Deeper trees did not generalize better, and on the full data the production configuration ranked first of 41 for heat pumps. The hand-tuned shallow model is therefore near-optimal, and the remaining error comes from the information in hourly data, not the tuning. (Nested AUCs are slightly below the main-model figures because each outer model trains on 80% of the labels.)
-- **Heat-pump limitation:** the labeled heat-pump rate rises ~8× with heating intensity, and among heavy electric heaters labeled heat pumps match other homes on cooling, baseload and winter shape. Hourly AMI cannot reliably separate whole-home heat pumps from resistance heat, so heat pumps are reported as *confirmed* (labeled) plus a ranked *candidate* list (~1 in 8 expected to be a heat pump), never as individually confirmed new finds.
+  Configurations ranged from 0.71 to 0.80 AUC (EV) and 0.67 to 0.77 (heat pump), so settings matter, but the hand-tuned EV model is already near the top. The gain is judged per outer fold, because each fold may pick a different configuration and their scores are not on a common scale (pooling them understates the tuned model). The heat-pump gain is modest (~1.6 SE) and the deployed model's top-K recall moved by two customers (12% → 9%), within noise. Conclusion: tuning adds little; the limit is the information in hourly data.
+- **Heat-pump limitation:** the labeled heat-pump rate rises ~8× with heating intensity, and among heavy electric heaters labeled heat pumps match other homes on cooling, baseload and winter shape. Hourly AMI cannot reliably separate whole-home heat pumps from resistance heat, so heat pumps are reported as *confirmed* (labeled) plus a ranked *candidate* list (~1 in 10 expected to be a heat pump), never as individually confirmed new finds.
 
 *Other technologies: physics-based rules with 0–1 confidence* (`src/07_classify_rules.py`; logistic "ramps" multiplied for AND conditions, flagged at ≥ 0.5)
 
@@ -177,7 +177,9 @@ The model scripts read the hackathon files from a `Data/` folder next to the rep
 pip install -r requirements.txt
 for s in 01_ingest 03_matrix 04_features 04b_session_features 06_classify_ml 07_classify_rules 08_classification_charts; do python src/$s.py; done
 ```
-`01_ingest` also de-duplicates customer-hours (`DISTINCT ON (customer, date, he)`), because one delivered zip was an exact copy of another.
+`01_ingest` also de-duplicates customer-hours (`DISTINCT ON (customer, date, he)`), as a safeguard: the original `10001_20000` zip was an exact copy of `1_10000`. `src/config.py` automatically uses a corrected `*_v2.zip` in place of its original.
+
+**Data coverage (model pipeline):** 34,238 customers. The corrected `10001_20000_v2` delivery still lacks customers 18,152–18,346 and 18,747–19,953 (~1,400 meters, including 12 EV, 10 heat-pump and 35 PV reference customers). All results above are on the customers delivered; labeled counts used are 186 EV, 88 heat pump and 397 PV.
 
 ### Part 2 – Segmentation and load insights
 *TODO* (a first-pass k-means segmentation on the model pipeline's features is in `src/09_segment.py`, figures `08`–`09`.)
