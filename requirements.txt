@@ -9,3 +9,4 @@ jupyter>=1.0
 # Model / classification pipeline (src/0*_*.py)
 duckdb>=1.1
 lightgbm>=4.5
+scipy>=1.11
