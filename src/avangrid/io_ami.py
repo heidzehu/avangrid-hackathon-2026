@@ -65,7 +65,14 @@ def find_ami_sources(raw_dir: Path) -> list[AmiSource]:
             found[(start, end)] = AmiSource(start, end, p, "dir")
         elif p.suffix.lower() == ".zip" and (start, end) not in found:
             found[(start, end)] = AmiSource(start, end, p, "zip")
-    return [found[k] for k in sorted(found)]
+    sources = [found[k] for k in sorted(found)]
+    # Supplemental delivery contains customer IDs 18746..19954, overlapping
+    # two existing edge customers. Unlike original deliveries, the filename
+    # describes Spark part numbers, not an exclusive customer-ID range.
+    extra = Path(raw_dir) / "2026 Avangrid Hackathon Data_Parts 44 to 49.zip"
+    if extra.is_file():
+        sources.append(AmiSource(18746, 19954, extra, "zip"))
+    return sources
 
 
 EXPECTED_LAST_CUSTOMER = 35725  # from the Data Dictionary
@@ -272,23 +279,40 @@ def build_raw_matrix(raw_dir: Path, processed: Path, rebuild: bool = False, verb
         sm = load_source_cached(s, processed, rebuild=rebuild, verbose=verbose)
         mats.append(sm)
         stats[s.tag] = sm.stats
-    customers = np.concatenate([m.customers for m in mats]).astype(np.int32)
-    order = np.argsort(customers, kind="stable")
-    customers = customers[order]
+    # Unique customer IDs, ordered. Original deliveries take priority at an
+    # overlapping customer-hour; supplemental data fills only missing hours.
+    customers = np.unique(np.concatenate([m.customers for m in mats]).astype(np.int32))
     out_path = processed / "kwh_raw.npy"
     manifest = processed / "kwh_raw_manifest.json"
     tags = [m.tag for m in mats]
-    if (not rebuild and out_path.exists() and manifest.exists()
-            and json.loads(manifest.read_text()).get("tags") == tags):
+    manifest_ok = (not rebuild and out_path.exists() and manifest.exists()
+                   and json.loads(manifest.read_text()).get("tags") == tags
+                   and (processed / "customers.npy").exists()
+                   and np.array_equal(np.load(processed / "customers.npy"), customers))
+    if manifest_ok:
         return customers, np.load(out_path, mmap_mode="r"), stats
-    out = np.lib.format.open_memmap(out_path, mode="w+", dtype=np.float32, shape=(len(customers), N_HOURS))
-    offset = 0
-    for m in mats:  # deliveries cover disjoint, increasing customer ranges -> already ordered
-        k = len(m.customers)
-        out[offset:offset + k] = m.kwh[np.argsort(m.customers, kind="stable")]
-        offset += k
+    out = np.lib.format.open_memmap(out_path, mode="w+", dtype=np.float32,
+                                    shape=(len(customers), N_HOURS))
+    out[:] = np.nan
+    overlaps, conflicts, added = 0, 0, 0
+    for m in mats:
+        ix = np.searchsorted(customers, m.customers)
+        for row_id, dest in enumerate(ix):
+            incoming = np.asarray(m.kwh[row_id])
+            original = out[dest]
+            both = np.isfinite(original) & np.isfinite(incoming)
+            overlaps += int(both.sum())
+            conflicts += int(np.count_nonzero(both & ~np.isclose(original, incoming, atol=0.001, rtol=0.0001)))
+            fill = ~np.isfinite(original) & np.isfinite(incoming)
+            added += int(fill.sum())
+            original[fill] = incoming[fill]
     out.flush()
     del out
     np.save(processed / "customers.npy", customers)
+    audit = {"overlap_hours": overlaps, "conflicting_overlap_hours": conflicts,
+             "newly_filled_hours": added, "policy": "original first; supplemental fills missing hours"}
+    (processed / "ami_merge_audit.json").write_text(json.dumps(audit, indent=2))
+    if verbose:
+        print("Supplemental merge:", audit)
     manifest.write_text(json.dumps({"tags": tags, "n_customers": int(len(customers))}))
     return customers, np.load(out_path, mmap_mode="r"), stats
